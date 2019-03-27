@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import math as m
 import matplotlib.pyplot as plt
@@ -6,23 +7,24 @@ def gauss(sample_phi,phi,sample_psi,psi,sigma):
     return np.exp((-1.0*((sample_phi-phi)**2 + (sample_psi-psi)**2))/(2.0*(sigma**2)))
 # print gauss(58.7+shiftPHI[l],phi,sample_psi[k]+shiftPSI[l],psi,sigma)
 
-def write_parzen_data( angle_filename, distr_fn ):
+def write_parzen_data( angle_filename, distr_fn, sigma ):
     with open( distr_fn, 'w' ) as dfn:
         dfn.write( "#Loop_length\tposition\tpsi\tphi\tcounts\n" )
     
     afn = open( angle_filename, 'r' )
     next(afn) # skip column names
     
-    data = map( float, next(afn).strip().split() )
+    data = list(map( float, next(afn).strip().split() ))
+    print( "Here" )
     loop, pos = data[0], data[1]
     s_psi = [data[2]]
     s_phi = [data[3]]
     
     for line in afn:
-        data = map( float, line.strip().split() )
+        data = list(map( float, line.strip().split() ))
         if loop != data[0] or pos != data[1]:
-            print loop, pos
-            write_parzen_windows( loop, pos, np.array(s_psi), np.array(s_phi), distr_fn )
+            print('\t', loop, pos)
+            write_parzen_windows( loop, pos, np.array(s_psi), np.array(s_phi), distr_fn, sigma )
             loop, pos = data[0], data[1]
             s_psi = [data[2]]
             s_phi = [data[3]]
@@ -30,11 +32,11 @@ def write_parzen_data( angle_filename, distr_fn ):
             s_psi.append( data[2] )
             s_phi.append( data[3] )
     
-    write_parzen_windows( loop, pos, np.array(s_psi), np.array(s_phi), distr_fn )
+    write_parzen_windows( loop, pos, np.array(s_psi), np.array(s_phi), distr_fn, sigma )
     afn.close()
  
 
-def write_parzen_windows( loop, pos, sample_psi, sample_phi, distr_filename ):
+def write_parzen_windows( loop, pos, sample_psi, sample_phi, distr_filename, sigma ):
     bin_sizeX = 72
     bin_sizeY = 72
     cell_x = np.linspace(-180, 180, bin_sizeX+1)
@@ -43,7 +45,6 @@ def write_parzen_windows( loop, pos, sample_psi, sample_phi, distr_filename ):
     [X, Y] = np.meshgrid(cell_x, cell_y)
     
     cell = np.zeros_like(X)
-    sigma = 1.5
     
     angle_listSize = len( sample_psi )
     
@@ -95,4 +96,7 @@ def write_parzen_windows( loop, pos, sample_psi, sample_phi, distr_filename ):
                                                         cell[i][j]) )
 
 if __name__ == "__main__":
-    write_parzen_data( "Kink_Phi_Psi-angles.txt", "Kink_Phi_Psi-distribution.txt" )
+    for sigma in np.arange(1, 10.1, 0.1):
+        print("Parzen windows with sigma {}".format( sigma ))
+        dist_path = "distributions/Kink_Phi_Psi-distribution-sigma-{}.txt".format( sigma )
+        write_parzen_data( "Kink_Phi_Psi-angles.txt", dist_path, sigma )
